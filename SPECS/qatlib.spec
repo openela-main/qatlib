@@ -3,12 +3,12 @@
 %global libqat_soversion  4
 %global libusdm_soversion 0
 Name:             qatlib
-Version:          23.11.0
+Version:          24.02.0
 Release:          1%{?dist}
 Summary:          Intel QuickAssist user space library
 # The entire source code is released under BSD.
 # For a breakdown of inbound licenses see the INSTALL file.
-License:          BSD and (BSD or GPLv2)
+License:          BSD-3-Clause AND ( BSD-3-Clause OR GPL-2.0-only )
 URL:              https://github.com/intel/%{name}
 Source0:          https://github.com/intel/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
 BuildRequires:    systemd gcc make autoconf automake libtool systemd-devel openssl-devel zlib-devel nasm
@@ -119,6 +119,7 @@ exit 0
 %attr(0754,-,qat) %{_bindir}/prime_sample
 %attr(0754,-,qat) %{_bindir}/hkdf_sample
 %attr(0754,-,qat) %{_bindir}/ec_montedwds_sample
+%attr(0754,-,qat) %{_bindir}/zuc_sample
 %{_datadir}/qat/calgary
 %{_datadir}/qat/calgary32
 %{_datadir}/qat/canterbury
@@ -131,6 +132,11 @@ exit 0
 %{_mandir}/man8/qat_init.sh.8*
 
 %changelog
+* Fri Jun 14 2024 Vladis Dronov <vdronov@redhat.com> - 24.02.0-1
+- Update to qatlib 24.02.0 (RHEL-40921)
+- Add zuc_sample to qatlib-tests package
+- Use proper SPDX license identifiers
+
 * Mon Nov 20 2023 Vladis Dronov <vdronov@redhat.com> - 23.11.0-1
 - Update to qatlib 23.11.0 (RHEL-15639)
 - Add chaining_sample to qatlib-tests package
