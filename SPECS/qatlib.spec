@@ -3,7 +3,7 @@
 %global libqat_soversion  4
 %global libusdm_soversion 0
 Name:             qatlib
-Version:          24.02.0
+Version:          24.09.0
 Release:          1%{?dist}
 Summary:          Intel QuickAssist user space library
 # The entire source code is released under BSD.
@@ -11,7 +11,7 @@ Summary:          Intel QuickAssist user space library
 License:          BSD-3-Clause AND ( BSD-3-Clause OR GPL-2.0-only )
 URL:              https://github.com/intel/%{name}
 Source0:          https://github.com/intel/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
-BuildRequires:    systemd gcc make autoconf automake libtool systemd-devel openssl-devel zlib-devel nasm
+BuildRequires:    systemd gcc make autoconf automake libtool systemd-devel openssl-devel zlib-devel nasm numactl-devel
 Requires(pre):    shadow-utils
 Recommends:       qatlib-service
 # https://bugzilla.redhat.com/show_bug.cgi?id=1897661
@@ -47,6 +47,7 @@ This package contains sample applications that use the Intel QuickAssists APIs.
 
 %package       service
 Summary:       A daemon for qatlib resources management
+Requires:      pciutils
 Requires:      %{name}%{?_isa} = %{version}-%{release}
 %{?systemd_requires}
 
@@ -132,8 +133,13 @@ exit 0
 %{_mandir}/man8/qat_init.sh.8*
 
 %changelog
-* Fri Jun 14 2024 Vladis Dronov <vdronov@redhat.com> - 24.02.0-1
-- Update to qatlib 24.02.0 (RHEL-40921)
+* Tue Oct 01 2024 Vladis Dronov <vdronov@redhat.com> - 24.09.0-1
+- Update to qatlib 24.09.0 @ 36fb0903 (RHEL-40255)
+- Add pciutils as a dependency of the qatlib-service subpackage
+- Add numactl-devel as a dependency since it is required by qatlib-24.09.0
+
+* Fri Mar 22 2024 Vladis Dronov <vdronov@redhat.com> - 24.02.0-1
+- Update to qatlib 24.02.0 (RHEL-20174)
 - Add zuc_sample to qatlib-tests package
 - Use proper SPDX license identifiers
 
