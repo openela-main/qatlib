@@ -3,19 +3,20 @@
 %global libqat_soversion  4
 %global libusdm_soversion 0
 Name:             qatlib
-Version:          24.09.0
-Release:          1%{?dist}
+Version:          25.08.0
+Release:          2%{?dist}
 Summary:          Intel QuickAssist user space library
 # The entire source code is released under BSD.
 # For a breakdown of inbound licenses see the INSTALL file.
 License:          BSD-3-Clause AND ( BSD-3-Clause OR GPL-2.0-only )
 URL:              https://github.com/intel/%{name}
 Source0:          https://github.com/intel/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
-BuildRequires:    systemd gcc make autoconf automake libtool systemd-devel openssl-devel zlib-devel nasm numactl-devel
-Requires(pre):    shadow-utils
+BuildRequires:    systemd gcc make autoconf autoconf-archive automake libtool systemd-devel openssl-devel zlib-devel nasm numactl-devel
 Recommends:       qatlib-service
 # https://bugzilla.redhat.com/show_bug.cgi?id=1897661
-ExcludeArch:      %{arm} aarch64 %{power64} s390x i686
+ExcludeArch:      %{arm} aarch64 %{power64} s390x i686 riscv64
+
+Patch0: qat-service-restorecon.patch
 
 %description
 Intel QuickAssist Technology (Intel QAT) provides hardware acceleration
@@ -58,6 +59,11 @@ QuickAssist Technology user space library (qatlib).
 %prep
 %autosetup -p1
 
+# Create a sysusers.d config file
+cat >qatlib.sysusers.conf <<EOF
+g qat -
+EOF
+
 %build
 autoreconf -vif
 %configure --enable-legacy-algorithms
@@ -74,9 +80,7 @@ rm %{buildroot}/%{_libdir}/libusdm.la
 rm %{buildroot}/%{_libdir}/libqat.a
 rm %{buildroot}/%{_libdir}/libusdm.a
 
-%pre
-getent group qat >/dev/null || groupadd -r qat
-exit 0
+install -m0644 -D qatlib.sysusers.conf %{buildroot}%{_sysusersdir}/qatlib.conf
 
 %post          service
 %systemd_post qat.service
@@ -92,6 +96,7 @@ exit 0
 %license LICENSE*
 %{_libdir}/libqat.so.%{libqat_soversion}*
 %{_libdir}/libusdm.so.%{libusdm_soversion}*
+%{_sysusersdir}/qatlib.conf
 
 %files         devel
 %{_libdir}/libqat.so
@@ -121,9 +126,11 @@ exit 0
 %attr(0754,-,qat) %{_bindir}/hkdf_sample
 %attr(0754,-,qat) %{_bindir}/ec_montedwds_sample
 %attr(0754,-,qat) %{_bindir}/zuc_sample
+%attr(0754,-,qat) %{_bindir}/update_sample
 %{_datadir}/qat/calgary
 %{_datadir}/qat/calgary32
 %{_datadir}/qat/canterbury
+%{_mandir}/man7/cpa_sample_code.7*
 
 %files         service
 %{_sbindir}/qatmgr
@@ -133,6 +140,16 @@ exit 0
 %{_mandir}/man8/qat_init.sh.8*
 
 %changelog
+* Mon Feb 02 2026 Vladislav Dronov <vdronov@redhat.com> - 25.08.0-2
+- Add a fix for a depmod issue (RHEL-91078)
+
+* Thu Jan 22 2026 Vladislav Dronov <vdronov@redhat.com> - 25.08.0-1
+- Update to qatlib 25.08.0 @ 686d209b (RHEL-91078)
+- Add autoconf-archive as a dependency
+- Add update_sample to qatlib-tests
+- Add manpage for cpa_sample_code
+- Add sysusers.d config file to allow rpm to create users/groups automatically
+
 * Tue Oct 01 2024 Vladis Dronov <vdronov@redhat.com> - 24.09.0-1
 - Update to qatlib 24.09.0 @ 36fb0903 (RHEL-40255)
 - Add pciutils as a dependency of the qatlib-service subpackage
