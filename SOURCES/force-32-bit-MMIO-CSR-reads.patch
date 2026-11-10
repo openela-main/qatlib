@@ -1,0 +1,32 @@
+diff --git a/quickassist/lookaside/access_layer/src/qat_direct/include/adf_platform_common.h b/quickassist/lookaside/access_layer/src/qat_direct/include/adf_platform_common.h
+index 6956a5e02502..449ba2978a93 100644
+--- a/quickassist/lookaside/access_layer/src/qat_direct/include/adf_platform_common.h
++++ b/quickassist/lookaside/access_layer/src/qat_direct/include/adf_platform_common.h
+@@ -258,8 +258,21 @@ static inline unsigned int modulo(unsigned int data, unsigned int shift)
+ #define ICP_ADF_CSR_WR(csrAddr, csrOffset, val)                                \
+     (void)((*((volatile Cpa32U *)(((Cpa8U *)csrAddr) + csrOffset)) = (val)))
+ 
+-/* CSR read macro */
+-#define ICP_ADF_CSR_RD(csrAddr, csrOffset)                                     \
+-    (*((volatile Cpa32U *)(((Cpa8U *)csrAddr) + csrOffset)))
++/*
++ * Force MMIO loads to remain 32-bit wide. GCC 16 may otherwise narrow a
++ * volatile 32-bit CSR read to a byte access when only one bit is tested,
++ * which breaks QAT mailbox CSRs that require DWORD transactions.
++ */
++static inline unsigned int icp_adf_csr_rd(void *csrAddr, unsigned int csrOffset)
++{
++    const volatile void *addr = ((char *)csrAddr) + csrOffset;
++    unsigned int val;
++
++    __asm__ __volatile__("movl (%1), %0" : "=r"(val) : "r"(addr) : "memory");
++
++    return val;
++}
++
++#define ICP_ADF_CSR_RD(csrAddr, csrOffset) icp_adf_csr_rd(csrAddr, csrOffset)
+
+ #endif /* ADF_PLATFORM_COMMON_H */
+-- 
+2.54.0
+

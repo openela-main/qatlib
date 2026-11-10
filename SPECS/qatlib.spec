@@ -3,12 +3,12 @@
 %global libqat_soversion  4
 %global libusdm_soversion 0
 Name:             qatlib
-Version:          25.08.0
-Release:          2%{?dist}
+Version:          26.02.0
+Release:          1%{?dist}
 Summary:          Intel QuickAssist user space library
 # The entire source code is released under BSD.
 # For a breakdown of inbound licenses see the INSTALL file.
-License:          BSD-3-Clause AND ( BSD-3-Clause OR GPL-2.0-only )
+License:          BSD-3-Clause
 URL:              https://github.com/intel/%{name}
 Source0:          https://github.com/intel/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
 BuildRequires:    systemd gcc make autoconf autoconf-archive automake libtool systemd-devel openssl-devel zlib-devel nasm numactl-devel
@@ -16,7 +16,12 @@ Recommends:       qatlib-service
 # https://bugzilla.redhat.com/show_bug.cgi?id=1897661
 ExcludeArch:      %{arm} aarch64 %{power64} s390x i686 riscv64
 
-Patch0: qat-service-restorecon.patch
+# A fix for RHEL-133799. Do not use selinux-policy package
+# in containers and other systems that do not use SELinux.
+Requires: (selinux-policy >= 38.1.80 if selinux-policy)
+
+# Temporary fix for systems with gcc v16.1 (Fedora 44), see RHEL-173592
+Patch0: force-32-bit-MMIO-CSR-reads.patch
 
 %description
 Intel QuickAssist Technology (Intel QAT) provides hardware acceleration
@@ -59,11 +64,6 @@ QuickAssist Technology user space library (qatlib).
 %prep
 %autosetup -p1
 
-# Create a sysusers.d config file
-cat >qatlib.sysusers.conf <<EOF
-g qat -
-EOF
-
 %build
 autoreconf -vif
 %configure --enable-legacy-algorithms
@@ -84,12 +84,20 @@ install -m0644 -D qatlib.sysusers.conf %{buildroot}%{_sysusersdir}/qatlib.conf
 
 %post          service
 %systemd_post qat.service
+if [ -S /run/udev/control ] ; then
+    udevadm control --reload || :
+    udevadm trigger || :
+fi
 
 %preun         service
 %systemd_preun qat.service
 
 %postun        service
 %systemd_postun_with_restart qat.service
+if [ -S /run/udev/control ] ; then
+    udevadm control --reload || :
+    udevadm trigger || :
+fi
 
 %files
 %doc INSTALL README.md
@@ -136,10 +144,15 @@ install -m0644 -D qatlib.sysusers.conf %{buildroot}%{_sysusersdir}/qatlib.conf
 %{_sbindir}/qatmgr
 %{_sbindir}/qat_init.sh
 %{_unitdir}/qat.service
+%{_udevrulesdir}/99-qat-vfio.rules
 %{_mandir}/man8/qatmgr.8*
 %{_mandir}/man8/qat_init.sh.8*
 
 %changelog
+* Mon Jun 29 2026 Vladislav Dronov <vdronov@redhat.com> - 26.02.0-1
+- Update to qatlib 26.02.0 @ fe4bb4b6 (RHEL-115834)
+- Add patch to force 32 bit MMIO CSR reads for GCC 16.1
+
 * Mon Feb 02 2026 Vladislav Dronov <vdronov@redhat.com> - 25.08.0-2
 - Add a fix for a depmod issue (RHEL-91078)
 
